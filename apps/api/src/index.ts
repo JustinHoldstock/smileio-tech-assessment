@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { HealthResponseSchema } from "@repo/shared";
+import { Smile } from "./smile-proxy";
 
 /**
  * Every route is mounted under `/api` so that the same paths work whether the
@@ -9,6 +10,7 @@ import { HealthResponseSchema } from "@repo/shared";
  * frontend's dev proxy / production rewrite.
  */
 const app = new Hono().basePath("/api");
+const smileApp = Smile;
 
 app.use("*", logger());
 
@@ -29,10 +31,59 @@ app.get("/health", (c) => {
   return c.json(
     HealthResponseSchema.parse({
       status: "ok",
-      timestamp: new Date().toISOString(),
+      data: {
+        timestamp: new Date().toISOString(),
+      }
     }),
   );
 });
+
+app.get('/customer', async (c) => {
+  const customer = await Smile.getCustomer(process.env?.SMILE_CUSTOMER_ID || '');
+
+  return c.json(
+    {
+      status: 'ok',
+      data: {
+        ...customer
+      }
+    }
+  )
+})
+app.get('/rewards', async (c) => {
+  const customer = await Smile.getCustomer(process.env?.SMILE_CUSTOMER_ID || '');
+
+  return c.json(
+    {
+      status: 'ok',
+      balance: customer.points_balance
+    }
+  )
+});
+
+app.get('/rewards/:id/redeem', (c) => {
+  return c.json(
+    {
+      status: 'ok',
+    }
+  )
+})
+
+app.get('/challenge', (c) => {
+  return c.json(
+    {
+      status: 'ok',
+    }
+  )
+})
+
+app.get('/challenge/:id/answer', (c) => {
+  return c.json(
+    {
+      status: 'ok',
+    }
+  )
+})
 
 app.notFound((c) => {
   return c.json(

@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
-import { HealthResponseSchema, type HealthResponse } from "@repo/shared";
+import { type SmileCustomerInfo, SmileCustomerInfoSchema } from "@repo/shared";
+import { useRequest } from "./request";
+import { useEffect } from "react";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
 
@@ -8,48 +9,31 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
  * that the shared Zod contract parses the response on both sides.
  */
 export function App() {
-  const [health, setHealth] = useState<HealthResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const { data: customerInfo, error: customerInfoError, loading: customerInfoLoading, abortController: customerInfoAbortController } = useRequest<SmileCustomerInfo>(`${API_BASE_URL}/api/customer`, SmileCustomerInfoSchema.parse);
 
   useEffect(() => {
-    const controller = new AbortController();
+    return () => customerInfoAbortController?.abort();
+  })
 
-    async function checkHealth() {
-      try {
-        const response = await fetch(`${API_BASE_URL}/api/health`, {
-          signal: controller.signal,
-        });
+  // Temp, for now
+  if (customerInfoLoading) {
+    return <main>
+      <h1>Loading...</h1>
+    </main>;
+  }
 
-        if (!response.ok) {
-          throw new Error(`Request failed with status ${response.status}`);
-        }
-
-        setHealth(HealthResponseSchema.parse(await response.json()));
-      } catch (cause) {
-        if (controller.signal.aborted) return;
-        setError(cause instanceof Error ? cause.message : "Unknown error");
-      }
-    }
-
-    void checkHealth();
-
-    return () => controller.abort();
-  }, []);
+  if (customerInfoError) {
+    return <main>
+      <h1>Error!</h1>
+      <p>{customerInfoError}</p>
+    </main>
+  }
 
   return (
     <main>
       <h1>Rewards</h1>
-      <p>Scaffold — no features implemented yet.</p>
-      <p>
-        API status:{" "}
-        {error !== null ? (
-          <span data-status="error">unreachable ({error})</span>
-        ) : health !== null ? (
-          <span data-status="ok">{health.status}</span>
-        ) : (
-          <span data-status="pending">checking…</span>
-        )}
-      </p>
+      <p>Hey {customerInfo?.first_name}!</p>
+      <p>Current balance: {customerInfo?.points_balance}</p>
     </main>
   );
 }

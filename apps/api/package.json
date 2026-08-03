@@ -4,13 +4,14 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/dev.ts",
+    "dev": "tsx watch --env-file-if-exists=.env src/dev.ts",
     "build": "tsc --noEmit",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@repo/shared": "*",
-    "hono": "^4.6.14"
+    "hono": "^4.6.14",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@hono/node-server": "^2.0.12",
