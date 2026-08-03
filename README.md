@@ -71,7 +71,9 @@ the shared contract are wired up correctly.
 | `npm run typecheck` | Type-checks every workspace |
 | `npm run clean` | Removes `node_modules` and build output |
 
-`@repo/shared` compiles to `dist/`, so it is built first and watched during dev.
+`@repo/shared` compiles to `dist/`. A root `postinstall` builds it after every
+`npm install`, so a fresh clone — and every Vercel build — has it available
+without any extra step.
 
 ## Configuration
 
@@ -96,6 +98,10 @@ Two Vercel projects from this one repository:
 | --- | --- | --- |
 | Frontend | `apps/web` | Vite (auto-detected) |
 | Backend | `apps/api` | Hono (auto-detected, zero config) |
+
+Both use Vercel's default build settings. Because Vercel installs npm workspaces
+from the repository root, the root `postinstall` builds `@repo/shared` before
+either app builds — so neither project needs a custom build command.
 
 Vercel serves the default export of `apps/api/src/index.ts` as a Function; the
 local `src/dev.ts` server is not used in production. Set each project's
