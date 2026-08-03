@@ -69,6 +69,47 @@ export const SmilePointsProductSchema = z.object({
 export type SmilePointsProduct = z.infer<typeof SmilePointsProductSchema>;
 
 /**
+ * `POST /api/rewards/:id/redeem` request body.
+ *
+ * `pointsToSpend` applies to `variable` products only — for `fixed` products
+ * the price is whatever Smile says it is, so there is nothing for the client to
+ * choose and sending the field is an error.
+ *
+ * Note what is deliberately absent: the price, the customer's balance and the
+ * variable range. The server re-reads all three from Smile, so a client that
+ * lies about them changes nothing.
+ */
+export const RedeemRewardRequestSchema = z.object({
+  pointsToSpend: z.number().int().positive().optional(),
+});
+
+export type RedeemRewardRequest = z.infer<typeof RedeemRewardRequestSchema>;
+
+/**
+ * `POST /api/rewards/:id/redeem` — the coupon Smile issued, plus the balance
+ * re-read from Smile afterwards rather than computed by subtraction.
+ */
+export const RedeemRewardResultSchema = z.object({
+  coupon: z.object({
+    name: z.string(),
+    /**
+     * Nullable because not every fulfilment type carries a redeemable code.
+     * A successful purchase that returns no code must still be reported as a
+     * success — the points are already spent either way.
+     */
+    code: z.string().nullable(),
+    usageInstructions: z.string().nullable(),
+    termsAndConditions: z.string().nullable(),
+    /** ISO timestamp, or null when the coupon does not expire. */
+    expiresAt: z.string().nullable(),
+  }),
+  pointsSpent: z.number().int(),
+  newBalance: z.number().int(),
+});
+
+export type RedeemRewardResult = z.infer<typeof RedeemRewardResultSchema>;
+
+/**
  * `POST /api/challenge` — the math question currently outstanding for this
  * session. Deliberately does NOT carry the answer: the answer only ever exists
  * server-side, keyed by session, and is destroyed the moment it is graded.
