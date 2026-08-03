@@ -11,12 +11,23 @@
 
 import { z } from "zod";
 
+/**
+ * `.env` files spell "unset" as `KEY=`, which reaches us as an empty string
+ * rather than `undefined` — so `.optional()` and `.default()` would not apply.
+ * Normalise blanks to absent before validating.
+ */
+const blankAsUndefined = (value: unknown) =>
+  typeof value === "string" && value.trim() === "" ? undefined : value;
+
 const EnvSchema = z.object({
   SMILE_API_KEY: z
     .string()
     .min(1, "required — the private API key from Smile Admin"),
 
-  SMILE_API_BASE_URL: z.string().url().default("https://api.smile.io/v1"),
+  SMILE_API_BASE_URL: z.preprocess(
+    blankAsUndefined,
+    z.string().url().default("https://api.smile.io/v1"),
+  ),
 
   /** Coerced to a number: Smile's API takes `customer_id` as an integer. */
   SMILE_CUSTOMER_ID: z.coerce
@@ -29,11 +40,17 @@ const EnvSchema = z.object({
    * Use `requireRedisConfig()` at the point of use, which fails with a message
    * that says what to do about it.
    */
-  UPSTASH_REDIS_REST_URL: z.string().url().optional(),
-  UPSTASH_REDIS_REST_TOKEN: z.string().min(1).optional(),
+  UPSTASH_REDIS_REST_URL: z.preprocess(
+    blankAsUndefined,
+    z.string().url().optional(),
+  ),
+  UPSTASH_REDIS_REST_TOKEN: z.preprocess(
+    blankAsUndefined,
+    z.string().min(1).optional(),
+  ),
 
   /** Unset locally — the Vite dev proxy makes requests same-origin. */
-  WEB_ORIGIN: z.string().url().optional(),
+  WEB_ORIGIN: z.preprocess(blankAsUndefined, z.string().url().optional()),
 });
 
 export type Env = z.infer<typeof EnvSchema>;

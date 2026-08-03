@@ -67,3 +67,47 @@ export const SmilePointsProductSchema = z.object({
 });
 
 export type SmilePointsProduct = z.infer<typeof SmilePointsProductSchema>;
+
+/**
+ * `POST /api/challenge` — the math question currently outstanding for this
+ * session. Deliberately does NOT carry the answer: the answer only ever exists
+ * server-side, keyed by session, and is destroyed the moment it is graded.
+ */
+export const MathChallengeSchema = z.object({
+  id: z.string().uuid(),
+  left: z.number().int(),
+  right: z.number().int(),
+  operator: z.enum(["+", "-"]),
+  expiresAt: z.string().datetime(),
+});
+
+export type MathChallenge = z.infer<typeof MathChallengeSchema>;
+
+/**
+ * `POST /api/challenge/answer` request body.
+ *
+ * Note there is no challenge id: the server already knows which question is
+ * outstanding for the session, so there is nothing for a client to forge or
+ * replay.
+ */
+export const ChallengeAnswerRequestSchema = z.object({
+  answer: z.number().int(),
+});
+
+export type ChallengeAnswerRequest = z.infer<typeof ChallengeAnswerRequestSchema>;
+
+/** `POST /api/challenge/answer` — both outcomes are legitimate 200 responses. */
+export const ChallengeResultSchema = z.discriminatedUnion("outcome", [
+  z.object({
+    outcome: z.literal("correct"),
+    pointsAwarded: z.number().int(),
+    newBalance: z.number().int(),
+  }),
+  z.object({
+    outcome: z.literal("incorrect"),
+    /** Seconds the client must wait before a new question is issued. */
+    retryAfterSeconds: z.number().int(),
+  }),
+]);
+
+export type ChallengeResult = z.infer<typeof ChallengeResultSchema>;

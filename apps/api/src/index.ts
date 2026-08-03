@@ -1,8 +1,18 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
-import { HealthResponseSchema } from "@repo/shared";
+import {
+  ChallengeAnswerRequestSchema,
+  ChallengeResultSchema,
+  HealthResponseSchema,
+} from "@repo/shared";
 import { Smile } from "./smile-proxy";
+import { getOrCreateSessionId } from "./session";
+import {
+  gradeAnswer,
+  issueChallenge,
+  POINTS_PER_CORRECT_ANSWER,
+} from "./challenge";
 
 /**
  * Every route is mounted under `/api` so that the same paths work whether the
@@ -69,20 +79,103 @@ app.get('/rewards/:id/redeem', (c) => {
   )
 })
 
-app.get('/challenge', (c) => {
-  return c.json(
-    {
-      status: 'ok',
-    }
-  )
-})
+/**
+ * POST, not GET: issuing creates server-side state, and a cacheable GET would
+ * hand back the same question from the browser or CDN cache.
+ */
+app.post('/challenge', async (c) => {
+  const sessionId = getOrCreateSessionId(c);
+  const result = await issueChallenge(sessionId);
 
-app.get('/challenge/:id/answer', (c) => {
+  c.header('Cache-Control', 'no-store');
+
+  if (result.status === 'issued') {
+    return c.json({ status: 'ok', data: result.challenge });
+  }
+
+  c.header('Retry-After', String(result.retryAfterSeconds));
   return c.json(
     {
+      error: {
+        code: 'too_many_requests',
+        message: `Hold on a moment — try again in ${result.retryAfterSeconds}s.`
+      }
+    },
+    429
+  );
+});
+
+app.post('/challenge/answer', async (c) => {
+  const sessionId = getOrCreateSessionId(c);
+
+  const body = await c.req.json().catch(() => null);
+  const parsedBody = ChallengeAnswerRequestSchema.safeParse(body);
+
+  c.header('Cache-Control', 'no-store');
+
+  if (!parsedBody.success) {
+    return c.json(
+      { error: { code: 'invalid_request', message: 'answer must be an integer' } },
+      400
+    );
+  }
+
+  const graded = await gradeAnswer(sessionId, parsedBody.data.answer);
+
+  if (graded.status === 'no_active_challenge') {
+    return c.json(
+      {
+        error: {
+          code: 'no_active_challenge',
+          message: 'That question is no longer open. Grab a new one.'
+        }
+      },
+      410
+    );
+  }
+
+  if (graded.status === 'rate_limited' || graded.status === 'daily_cap_reached') {
+    return c.json(
+      {
+        error: {
+          code: 'too_many_requests',
+          message: 'Too many attempts for now. Try again later.'
+        }
+      },
+      429
+    );
+  }
+
+  if (graded.status === 'incorrect') {
+    return c.json({
       status: 'ok',
-    }
-  )
+      data: ChallengeResultSchema.parse({
+        outcome: 'incorrect',
+        retryAfterSeconds: graded.retryAfterSeconds
+      })
+    });
+  }
+
+  const customerId = process.env?.SMILE_CUSTOMER_ID || '';
+
+  await Smile.createPointsTransaction(
+    customerId,
+    POINTS_PER_CORRECT_ANSWER,
+    'Answered the math question correctly'
+  );
+
+  // Re-read rather than tracking the balance ourselves: Smile is the source of
+  // truth, and other activity could have moved it.
+  const customer = await Smile.getCustomer(customerId);
+
+  return c.json({
+    status: 'ok',
+    data: ChallengeResultSchema.parse({
+      outcome: 'correct',
+      pointsAwarded: POINTS_PER_CORRECT_ANSWER,
+      newBalance: customer.points_balance
+    })
+  });
 })
 
 app.notFound((c) => {

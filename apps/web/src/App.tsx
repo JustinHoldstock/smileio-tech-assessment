@@ -2,6 +2,7 @@ import { type SmileCustomerInfo, SmileCustomerInfoSchema, type SmilePointsProduc
 import { useRequest } from "./request";
 import { useEffect } from "react";
 import { PointsProduct } from "./components/points-product/points-product.component";
+import { MathChallengeCard } from "./components/math-challenge/math-challenge.component";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
 
@@ -14,7 +15,8 @@ export function App() {
     data: customerInfo,
     error: customerInfoError,
     loading: customerInfoLoading,
-    abortController: customerInfoAbortController
+    abortController: customerInfoAbortController,
+    refetch: refetchCustomerInfo
   } = useRequest<SmileCustomerInfo>(`${API_BASE_URL}/api/customer`, SmileCustomerInfoSchema.parse);
 
   const {
@@ -32,8 +34,9 @@ export function App() {
     }
   })
 
-  // Temp, for now
-  if (customerInfoLoading) {
+  // Temp, for now. Only blank the page on the FIRST load — refetching after a
+  // points award must not unmount the challenge card and lose its state.
+  if (customerInfoLoading && !customerInfo) {
     return <main>
       <h1>Loading...</h1>
     </main>;
@@ -51,6 +54,7 @@ export function App() {
       <h1>Rewards</h1>
       <p>Hey {customerInfo?.first_name}!</p>
       <p>Current balance: {customerInfo?.points_balance}</p>
+      <MathChallengeCard onAwarded={refetchCustomerInfo} />
       <div>
         {rewardsLoading && 'Rewards loading...'}
         {!rewardsLoading && rewards?.map((product) => <PointsProduct product={product} balance={customerInfo?.points_balance || 0} />)}
