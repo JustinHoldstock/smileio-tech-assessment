@@ -82,21 +82,18 @@ class SmileApp{
   ) {
     const url = `${SmileApp.api_base}/points_products/${productId}/purchase`;
 
-    // Smile wraps request bodies in the resource name — confirmed the hard way
-    // on /points_transactions, where top-level fields are rejected with a 403
-    // (a misleading status for a body problem).
+    // Smile is INCONSISTENT about request body wrapping, so do not generalise
+    // from one endpoint to another. Both of these are confirmed against the
+    // live API:
     //
-    // UNVERIFIED: that this endpoint wraps under `points_purchase` specifically
-    // has NOT been confirmed against the live API — we deliberately avoid test
-    // purchases because they spend the customer's real points. Note that the
-    // published docs show this body *unwrapped*, but the docs said the same of
-    // /points_transactions and were wrong. If a correctly-formed request comes
-    // back 403, unwrap this body before assuming anything else is at fault.
+    //   POST /points_transactions          wrapped   { points_transaction: {...} }
+    //   POST /points_products/{id}/purchase  NOT wrapped, fields at top level
+    //
+    // Wrapping this one produced `400 Parameter points_to_spend is required`,
+    // because Smile reads nothing inside the wrapper.
     const body = {
-      points_purchase: {
-        customer_id: Number(clientId),
-        ...(pointsToSpend === undefined ? {} : { points_to_spend: pointsToSpend })
-      }
+      customer_id: Number(clientId),
+      ...(pointsToSpend === undefined ? {} : { points_to_spend: pointsToSpend })
     };
 
     const resp = await fetch(url, {
