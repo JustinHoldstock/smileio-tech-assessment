@@ -57,8 +57,8 @@ export function App() {
   useEffect(() => {
     return () => {
       // For now. We can clean this up later
-      customerInfoAbortController?.abort();
-      rewardsAbortController?.abort()
+      // customerInfoAbortController?.abort();
+      // rewardsAbortController?.abort()
     }
   })
 
