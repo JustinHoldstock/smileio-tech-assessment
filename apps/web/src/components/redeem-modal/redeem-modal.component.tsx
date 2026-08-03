@@ -257,30 +257,42 @@ export const RedeemModal = ({
               </p>
             ) : ceiling !== null ? (
               <div style={{ marginBottom: '12px' }}>
-                <label htmlFor={`${headingId}-slider`} style={labelStyle}>
-                  Points to spend: <strong>{points}</strong>
-                </label>
-                <input
-                  id={`${headingId}-slider`}
-                  type="range"
-                  min={min}
-                  max={ceiling}
-                  step={step}
-                  value={points}
-                  disabled={submitting}
-                  onChange={(event) => setPoints(Number(event.target.value))}
-                  style={{ width: '100%' }}
-                />
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    fontSize: '0.85rem'
-                  }}
-                >
-                  <span>{min}</span>
-                  <span>{ceiling}</span>
-                </div>
+                {ceiling === min ? (
+                  // The balance affords exactly one valid spend, so a slider
+                  // would be a control that cannot move — and one reading
+                  // "100" to "100" reads like something is broken. State the
+                  // amount instead.
+                  <p style={labelStyle}>
+                    Points to spend: <strong>{points}</strong>
+                  </p>
+                ) : (
+                  <>
+                    <label htmlFor={`${headingId}-slider`} style={labelStyle}>
+                      Points to spend: <strong>{points}</strong>
+                    </label>
+                    <input
+                      id={`${headingId}-slider`}
+                      type="range"
+                      min={min}
+                      max={ceiling}
+                      step={step}
+                      value={points}
+                      disabled={submitting}
+                      onChange={(event) => setPoints(Number(event.target.value))}
+                      style={{ width: '100%' }}
+                    />
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        fontSize: '0.85rem'
+                      }}
+                    >
+                      <span>{min}</span>
+                      <span>{ceiling}</span>
+                    </div>
+                  </>
+                )}
                 <p style={{ marginBottom: 0 }}>{product.exchange_description}</p>
               </div>
             ) : (
