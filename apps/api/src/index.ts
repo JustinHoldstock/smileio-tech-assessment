@@ -17,6 +17,10 @@ import {
   POINTS_PER_CORRECT_ANSWER,
 } from "./challenge.js";
 import { planRedemption } from "./redemption.js";
+import {
+  acquireRedemptionLock,
+  releaseRedemptionLock,
+} from "./redemption-lock.js";
 
 /**
  * Every route is mounted under `/api` so that the same paths work whether the
@@ -111,68 +115,91 @@ app.post('/rewards/:id/redeem', async (c) => {
 
   const customerId = process.env?.SMILE_CUSTOMER_ID || '';
 
-  const [customer, product] = await Promise.all([
-    Smile.getCustomer(customerId),
-    Smile.getPointsProduct(productId)
-  ]);
+  // Held across the whole read-check-purchase window, not just the purchase:
+  // the race being closed is two requests both reading a pre-purchase balance
+  // and both concluding they can afford it.
+  const lockToken = await acquireRedemptionLock(customerId, productId);
 
-  const check = planRedemption(
-    product,
-    customer.points_balance,
-    parsedBody.data.pointsToSpend
-  );
-
-  if (check.status === 'rejected') {
-    return c.json(
-      { error: { code: check.code, message: check.message } },
-      check.httpStatus
-    );
-  }
-
-  let purchase;
-
-  try {
-    purchase = await Smile.purchasePointsProduct(
-      customerId,
-      product.id,
-      check.plan.variableSpend
-    );
-  } catch (error) {
-    // Log the detail server-side; the client gets a message that does not leak
-    // Smile's response but also does not claim more than we know. A failed call
-    // is *probably* a no-op, but a request that died in flight might not be.
-    console.error(error);
+  if (lockToken === null) {
     return c.json(
       {
         error: {
-          code: 'redemption_failed',
-          message:
-            'We could not complete this redemption. Check your balance before trying again.'
+          code: 'redemption_in_progress',
+          message: 'This reward is already being redeemed. Give it a moment.'
         }
       },
-      502
+      409
     );
   }
 
-  // Re-read rather than subtracting locally: Smile is the source of truth, and
-  // it is the only thing that knows what the purchase actually cost.
-  const updatedCustomer = await Smile.getCustomer(customerId);
-  const fulfillment = purchase.reward_fulfillment;
+  try {
+    const [customer, product] = await Promise.all([
+      Smile.getCustomer(customerId),
+      Smile.getPointsProduct(productId)
+    ]);
 
-  return c.json({
-    status: 'ok',
-    data: RedeemRewardResultSchema.parse({
-      coupon: {
-        name: fulfillment.name,
-        code: fulfillment.code ?? null,
-        usageInstructions: fulfillment.usage_instructions ?? null,
-        termsAndConditions: fulfillment.terms_and_conditions ?? null,
-        expiresAt: fulfillment.expires_at ?? null
-      },
-      pointsSpent: purchase.points_spent,
-      newBalance: updatedCustomer.points_balance
-    })
-  });
+    const check = planRedemption(
+      product,
+      customer.points_balance,
+      parsedBody.data.pointsToSpend
+    );
+
+    if (check.status === 'rejected') {
+      return c.json(
+        { error: { code: check.code, message: check.message } },
+        check.httpStatus
+      );
+    }
+
+    let purchase;
+
+    try {
+      purchase = await Smile.purchasePointsProduct(
+        customerId,
+        product.id,
+        check.plan.variableSpend
+      );
+    } catch (error) {
+      // Log the detail server-side; the client gets a message that does not leak
+      // Smile's response but also does not claim more than we know. A failed call
+      // is *probably* a no-op, but a request that died in flight might not be.
+      console.error(error);
+      return c.json(
+        {
+          error: {
+            code: 'redemption_failed',
+            message:
+              'We could not complete this redemption. Check your balance before trying again.'
+          }
+        },
+        502
+      );
+    }
+
+    // Re-read rather than subtracting locally: Smile is the source of truth, and
+    // it is the only thing that knows what the purchase actually cost.
+    const updatedCustomer = await Smile.getCustomer(customerId);
+    const fulfillment = purchase.reward_fulfillment;
+
+    return c.json({
+      status: 'ok',
+      data: RedeemRewardResultSchema.parse({
+        coupon: {
+          name: fulfillment.name,
+          code: fulfillment.code ?? null,
+          usageInstructions: fulfillment.usage_instructions ?? null,
+          termsAndConditions: fulfillment.terms_and_conditions ?? null,
+          expiresAt: fulfillment.expires_at ?? null
+        },
+        pointsSpent: purchase.points_spent,
+        newBalance: updatedCustomer.points_balance
+      })
+    });
+  } finally {
+    // Every path above returns, so release has to be in `finally` — including
+    // the rejection and 502 paths, which must not leave the reward locked.
+    await releaseRedemptionLock(customerId, productId, lockToken);
+  }
 })
 
 /**
