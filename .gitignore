@@ -1,0 +1,23 @@
+node_modules/
+dist/
+build/
+.vercel/
+
+# Environment — never commit real credentials
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Caches
+*.tsbuildinfo
+.cache/
