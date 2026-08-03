@@ -2,12 +2,15 @@ import type { SmilePointsProduct } from '@repo/shared';
 
 import { cheapestPrice } from '../../rewards';
 import { PointsProduct } from '../points-product/points-product.component';
+import { Skeleton } from '../skeleton/skeleton.component';
 import styles from './products-list.module.css';
 
 interface ProductsListParams {
   products: SmilePointsProduct[] | null | undefined;
   balance: number;
   loading: boolean;
+  /** Message to show instead of the grid when the fetch failed. */
+  error: string | null | undefined;
   /** Called once points have moved, so the balance can be re-read. */
   onRedeemed: () => void;
 }
@@ -18,6 +21,7 @@ export const ProductsList = ({
   products,
   balance,
   loading,
+  error,
   onRedeemed
 }: ProductsListParams) => {
   const affordable =
@@ -29,7 +33,7 @@ export const ProductsList = ({
         <h2 className={styles.title} id="rewards-heading">
           Rewards
         </h2>
-        {!loading && products !== null && products !== undefined && products.length > 0 && (
+        {!loading && !error && products !== null && products !== undefined && products.length > 0 && (
           <span className={styles.summary}>
             {affordable} of {products.length} within reach
           </span>
@@ -39,20 +43,22 @@ export const ProductsList = ({
       {loading && (
         <div className={styles.grid} aria-busy="true" aria-label="Loading rewards">
           {Array.from({ length: SKELETON_COUNT }, (_, index) => (
-            <div className={styles.skeleton} key={index} />
+            <Skeleton key={index} height="11rem" radius="var(--radius)" />
           ))}
         </div>
       )}
 
-      {!loading && (products === null || products === undefined) && (
-        <p className={styles.state}>We couldn&rsquo;t load the rewards just now.</p>
+      {!loading && (error || products === null || products === undefined) && (
+        <p className={styles.state} role="alert">
+          We couldn&rsquo;t load the rewards just now.
+        </p>
       )}
 
-      {!loading && products?.length === 0 && (
+      {!loading && !error && products?.length === 0 && (
         <p className={styles.state}>No rewards are available yet.</p>
       )}
 
-      {!loading && products !== null && products !== undefined && products.length > 0 && (
+      {!loading && !error && products !== null && products !== undefined && products.length > 0 && (
         <div className={styles.grid}>
           {products.map((product) => (
             <PointsProduct

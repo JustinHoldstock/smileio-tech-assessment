@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 import {
   type RedeemRewardResult,
@@ -6,7 +7,8 @@ import {
   type SmilePointsProduct
 } from '@repo/shared';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
+import { ApiError, postJson } from '../../api';
+import styles from './redeem-modal.module.css';
 
 interface RedeemModalParams {
   product: SmilePointsProduct;
@@ -16,35 +18,6 @@ interface RedeemModalParams {
   onClose: () => void;
   /** Called once points have moved, so the balance can be re-read. */
   onRedeemed: () => void;
-}
-
-class ApiError extends Error {
-  constructor(message: string, readonly status: number) {
-    super(message);
-  }
-}
-
-async function postJson<T>(
-  path: string,
-  parse: (value: unknown) => T,
-  body?: unknown
-): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    method: 'POST',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
-    body: body === undefined ? undefined : JSON.stringify(body)
-  });
-
-  const json = await response.json().catch(() => null);
-
-  if (!response.ok) {
-    const message =
-      json?.error?.message ?? `Request failed with status ${response.status}`;
-    throw new ApiError(message, response.status);
-  }
-
-  return parse(json?.data);
 }
 
 /**
@@ -154,42 +127,34 @@ export const RedeemModal = ({
 
   const labelStyle = { display: 'block', marginBottom: '4px' };
 
-  return (
+  /*
+   * Portalled to <body> rather than rendered in place.
+   *
+   * The modal is opened from inside a reward card, and that card applies a
+   * `transform` on hover. A transformed ancestor becomes the containing block
+   * for `position: fixed` descendants, so an in-place modal centres itself on
+   * the *card* and visibly jumps as the hover transform comes and goes. A
+   * portal takes it out of that subtree entirely, which also sidesteps any
+   * stacking-context fights with the fixed balance tracker.
+   */
+  return createPortal(
     <div
+      className={styles.backdrop}
       onClick={(event) => {
         // Only a click on the backdrop itself dismisses — not one that bubbled
         // up from inside the dialog.
         if (event.target === event.currentTarget) requestClose();
       }}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(0, 0, 0, 0.5)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '16px'
-      }}
     >
       <div
         ref={dialogRef}
+        className={styles.dialog}
         role="dialog"
         aria-modal="true"
         aria-labelledby={headingId}
         tabIndex={-1}
-        style={{
-          background: 'Canvas',
-          color: 'CanvasText',
-          border: 'solid grey',
-          borderRadius: '8px',
-          padding: '16px',
-          width: '100%',
-          maxWidth: '26rem',
-          maxHeight: '90vh',
-          overflowY: 'auto'
-        }}
       >
-        <h2 id={headingId} style={{ marginTop: 0, marginBottom: '8px' }}>
+        <h2 id={headingId} className={styles.title}>
           {result === null ? `Redeem ${product.reward.name}` : 'Reward redeemed'}
         </h2>
 
@@ -200,20 +165,7 @@ export const RedeemModal = ({
             {result.coupon.code !== null ? (
               <>
                 <p style={{ marginBottom: '4px' }}>Your code:</p>
-                <p
-                  style={{
-                    fontFamily: 'ui-monospace, monospace',
-                    fontSize: '1.25rem',
-                    fontWeight: 'bold',
-                    border: 'solid grey',
-                    borderRadius: '4px',
-                    padding: '8px',
-                    margin: '0 0 12px',
-                    wordBreak: 'break-all'
-                  }}
-                >
-                  {result.coupon.code}
-                </p>
+                <code className={styles.code}>{result.coupon.code}</code>
               </>
             ) : (
               <p>This reward has been issued to your account — no code needed.</p>
@@ -241,9 +193,11 @@ export const RedeemModal = ({
               </details>
             )}
 
-            <button type="button" onClick={onClose}>
-              Done
-            </button>
+            <div className={styles.actions}>
+              <button type="button" className={styles.primary} onClick={onClose}>
+                Done
+              </button>
+            </div>
           </div>
         ) : (
           <>
@@ -302,38 +256,51 @@ export const RedeemModal = ({
               </p>
             )}
 
-            <p style={{ marginBottom: '4px' }}>
-              Current balance: {balance} points
-            </p>
-            <p style={{ marginTop: 0 }}>
-              Balance after redeeming: {resultingBalance} points
-            </p>
+            <div className={styles.summary}>
+              <span>Current balance</span>
+              <span className={styles.summaryValue}>
+                {balance.toLocaleString()} points
+              </span>
+            </div>
+            <div className={styles.summary}>
+              <span>Balance after redeeming</span>
+              <span className={styles.summaryValue}>
+                {resultingBalance.toLocaleString()} points
+              </span>
+            </div>
 
             {!canAfford && isFixed && (
               <p>You do not have enough points for this reward.</p>
             )}
 
             {error !== null && (
-              <p role="alert" data-status="error">
+              <p role="alert" className={styles.error}>
                 {error}
               </p>
             )}
 
-            <div style={{ display: 'flex', gap: '8px' }}>
+            <div className={styles.actions}>
               <button
                 type="button"
+                className={styles.primary}
                 onClick={() => void handleConfirm()}
                 disabled={submitting || !canAfford}
               >
                 {submitting ? 'Redeeming…' : `Confirm (${cost} points)`}
               </button>
-              <button type="button" onClick={requestClose} disabled={submitting}>
+              <button
+                type="button"
+                className={styles.secondary}
+                onClick={requestClose}
+                disabled={submitting}
+              >
                 Cancel
               </button>
             </div>
           </>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

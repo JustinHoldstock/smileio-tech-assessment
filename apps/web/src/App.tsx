@@ -5,6 +5,7 @@ import { ProductsList } from "./components/products-list/products-list.component
 import { BalanceTracker } from "./components/balance-tracker/balance-tracker.component";
 import { MathChallengeCard } from "./components/math-challenge/math-challenge.component";
 import { RedemptionsSidebar } from "./components/redemptions-sidebar/redemptions-sidebar.component";
+import { Skeleton } from "./components/skeleton/skeleton.component";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
 
@@ -37,7 +38,7 @@ export function App() {
 
   const {
     data: rewards,
-    // error: rewardsError,
+    error: rewardsError,
     loading: rewardsLoading,
     // abortController: rewardsAbortController
   } = useRequest<SmilePointsProduct[]>(`${API_BASE_URL}/api/rewards`, SmilePointsProductSchema.array().parse);
@@ -63,35 +64,45 @@ export function App() {
     }
   })
 
-  // Temp, for now. Only blank the page on the FIRST load — refetching after a
-  // points award must not unmount the challenge card and lose its state.
-  if (customerInfoLoading && !customerInfo) {
-    return <main>
-      <h1>Loading...</h1>
-    </main>;
-  }
-
-  if (customerInfoError) {
-    return <main>
-      <h1>Error!</h1>
-      <p>{customerInfoError}</p>
-    </main>
-  }
+  /*
+   * No page-level loading or error return.
+   *
+   * A single gate meant one slow or failing request blanked everything — the
+   * rewards could be ready while the customer call was still in flight, and a
+   * customer error hid a perfectly healthy sidebar. Each component now renders
+   * its own skeleton and its own failure, so the page fills in progressively
+   * and one broken endpoint costs you only that section.
+   */
+  const greetingLoading = customerInfoLoading && !customerInfo;
 
   return (
     <div style={pageStyle}>
       <BalanceTracker
         balance={customerInfo?.points_balance}
-        refreshing={customerInfoLoading}
+        loading={customerInfoLoading}
+        error={customerInfoError}
       />
       <main style={mainColumnStyle}>
         <h1>Smile Rewards</h1>
-        <p>Hey {customerInfo?.first_name}!</p>
+
+        {greetingLoading && <Skeleton width="9rem" height="1.1rem" />}
+
+        {!greetingLoading && customerInfoError && (
+          <p role="alert" data-status="error">
+            We couldn&rsquo;t load your account details.
+          </p>
+        )}
+
+        {!greetingLoading && !customerInfoError && (
+          <p>Hey {customerInfo?.first_name}!</p>
+        )}
+
         <MathChallengeCard onAwarded={refetchCustomerInfo} />
         <ProductsList
           products={rewards}
           balance={customerInfo?.points_balance ?? 0}
           loading={rewardsLoading}
+          error={rewardsError}
           onRedeemed={handleRedeemed}
         />
       </main>

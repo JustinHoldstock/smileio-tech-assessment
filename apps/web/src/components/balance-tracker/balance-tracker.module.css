@@ -44,3 +44,8 @@
 .stale {
   opacity: 0.6;
 }
+
+.unavailable {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}

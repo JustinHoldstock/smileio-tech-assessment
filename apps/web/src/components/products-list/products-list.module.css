@@ -41,27 +41,5 @@
   border-radius: var(--radius);
 }
 
-/* Placeholders that match the real cards, so the grid does not jump on load. */
-.skeleton {
-  height: 11rem;
-  background: var(--surface-sunken);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  animation: pulse 1.4s ease-in-out infinite;
-}
-
-@keyframes pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.55;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .skeleton {
-    animation: none;
-  }
-}
+/* Card-sized placeholders come from the shared <Skeleton>, so the grid keeps
+   its shape on load and every placeholder in the app shimmers in step. */

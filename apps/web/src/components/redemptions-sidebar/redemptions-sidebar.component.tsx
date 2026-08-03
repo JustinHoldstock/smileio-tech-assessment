@@ -1,7 +1,12 @@
 import { type PointsTransaction, PointsTransactionSchema } from '@repo/shared';
+
 import { useRequest } from '../../request';
+import { Skeleton } from '../skeleton/skeleton.component';
+import styles from './redemptions-sidebar.module.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
+
+const SKELETON_COUNT = 3;
 
 /**
  * `points_change` arrives signed the way Smile records it — negative for a
@@ -26,22 +31,14 @@ const formatDate = (isoDate: string) => {
 };
 
 const Redemption = ({ redemption }: { redemption: PointsTransaction }) => (
-  <li style={{ padding: '10px 0', borderBottom: 'solid 1px lightgrey' }}>
-    <div style={{ overflowWrap: 'anywhere' }}>
+  <li className={styles.item}>
+    <div className={styles.description}>
       {redemption.description ?? 'Reward redeemed'}
     </div>
-    <div
-      style={{
-        display: 'flex',
-        flexWrap: 'wrap',
-        gap: '8px',
-        justifyContent: 'space-between',
-        fontSize: '0.85rem',
-        color: 'grey',
-        marginTop: '2px'
-      }}
-    >
-      <span>{formatPointsSpent(redemption.points_change)}</span>
+    <div className={styles.meta}>
+      <span className={styles.spent}>
+        {formatPointsSpent(redemption.points_change)}
+      </span>
       <span>{formatDate(redemption.created_at)}</span>
     </div>
   </li>
@@ -53,34 +50,39 @@ export const RedemptionsSidebar = () => {
     PointsTransactionSchema.array().parse
   );
 
-  return (
-    <aside
-      style={{
-        // `0 1 18rem` rather than allowing growth: on a wide screen the sidebar
-        // stays a fixed-ish column, and on a narrow one the flex row wraps it
-        // below the main content instead of squeezing either column.
-        flex: '0 1 18rem',
-        minWidth: 0,
-        // Extra top padding clears the fixed balance tracker, which sits in the
-        // same corner as this column's heading on a wide screen.
-        padding: '4.75rem 1.5rem 3rem',
-        boxSizing: 'border-box'
-      }}
-    >
-      <h2 style={{ marginTop: 0, fontSize: '1.1rem' }}>Past redemptions</h2>
+  const hasRedemptions =
+    redemptions !== null && redemptions !== undefined && redemptions.length > 0;
 
-      {loading && <p style={{ color: 'grey' }}>Loading redemptions…</p>}
+  return (
+    <aside className={styles.sidebar} aria-labelledby="redemptions-heading">
+      <h2 className={styles.title} id="redemptions-heading">
+        Past redemptions
+      </h2>
+
+      {loading && (
+        <div
+          className={styles.placeholders}
+          aria-busy="true"
+          aria-label="Loading redemptions"
+        >
+          {Array.from({ length: SKELETON_COUNT }, (_, index) => (
+            <Skeleton key={index} height="3.6rem" radius="10px" />
+          ))}
+        </div>
+      )}
 
       {!loading && error && (
-        <p data-status="error">Could not load your redemptions.</p>
+        <p className={styles.error} role="alert">
+          Could not load your redemptions.
+        </p>
       )}
 
-      {!loading && !error && redemptions?.length === 0 && (
-        <p style={{ color: 'grey' }}>No redemptions yet</p>
+      {!loading && !error && !hasRedemptions && (
+        <p className={styles.state}>No redemptions yet</p>
       )}
 
-      {!loading && !error && redemptions !== null && redemptions !== undefined && redemptions.length > 0 && (
-        <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+      {!loading && !error && hasRedemptions && (
+        <ul className={styles.list}>
           {redemptions.map((redemption) => (
             <Redemption key={redemption.id} redemption={redemption} />
           ))}
