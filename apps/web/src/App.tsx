@@ -1,4 +1,4 @@
-import { type SmileCustomerInfo, SmileCustomerInfoSchema, type SmilePointsProduct, SmilePointsProductSchema } from "@repo/shared";
+import { type SmileCustomerInfo, SmileCustomerInfoSchema } from "@repo/shared";
 import { useRequest } from "./request";
 import { useCallback, useEffect, useState } from "react";
 import { ProductsList } from "./components/products-list/products-list.component";
@@ -36,13 +36,6 @@ export function App() {
     refetch: refetchCustomerInfo
   } = useRequest<SmileCustomerInfo>(`${API_BASE_URL}/api/customer`, SmileCustomerInfoSchema.parse);
 
-  const {
-    data: rewards,
-    error: rewardsError,
-    loading: rewardsLoading,
-    // abortController: rewardsAbortController
-  } = useRequest<SmilePointsProduct[]>(`${API_BASE_URL}/api/rewards`, SmilePointsProductSchema.array().parse);
-
   const [redemptionVersion, setRedemptionVersion] = useState(0);
 
   /**
@@ -60,7 +53,6 @@ export function App() {
     return () => {
       // For now. We can clean this up later
       // customerInfoAbortController?.abort();
-      // rewardsAbortController?.abort()
     }
   })
 
@@ -99,10 +91,7 @@ export function App() {
 
         <MathChallengeCard onAwarded={refetchCustomerInfo} />
         <ProductsList
-          products={rewards}
           balance={customerInfo?.points_balance ?? 0}
-          loading={rewardsLoading}
-          error={rewardsError}
           onRedeemed={handleRedeemed}
         />
       </main>

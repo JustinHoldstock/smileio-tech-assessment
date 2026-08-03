@@ -1,29 +1,37 @@
-import type { SmilePointsProduct } from '@repo/shared';
+import { type SmilePointsProduct, SmilePointsProductSchema } from '@repo/shared';
 
+import { useRequest } from '../../request';
 import { cheapestPrice } from '../../rewards';
 import { PointsProduct } from '../points-product/points-product.component';
 import { Skeleton } from '../skeleton/skeleton.component';
 import styles from './products-list.module.css';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
+
 interface ProductsListParams {
-  products: SmilePointsProduct[] | null | undefined;
+  /**
+   * Passed in rather than fetched here: the balance has several consumers on
+   * this page (the tracker, the greeting, every card), so it stays a single
+   * request owned by App. The reward catalogue has exactly one consumer, which
+   * is why that one lives here.
+   */
   balance: number;
-  loading: boolean;
-  /** Message to show instead of the grid when the fetch failed. */
-  error: string | null | undefined;
   /** Called once points have moved, so the balance can be re-read. */
   onRedeemed: () => void;
 }
 
 const SKELETON_COUNT = 4;
 
-export const ProductsList = ({
-  products,
-  balance,
-  loading,
-  error,
-  onRedeemed
-}: ProductsListParams) => {
+export const ProductsList = ({ balance, onRedeemed }: ProductsListParams) => {
+  const {
+    data: products,
+    loading,
+    error
+  } = useRequest<SmilePointsProduct[]>(
+    `${API_BASE_URL}/api/rewards`,
+    SmilePointsProductSchema.array().parse
+  );
+
   const affordable =
     products?.filter((product) => balance >= cheapestPrice(product)).length ?? 0;
 

@@ -117,8 +117,13 @@ export const RedeemModal = ({
       // with ours, so what we are showing is stale — re-read it.
       if (cause instanceof ApiError && cause.status === 409) onRedeemed();
 
+      // Only our own API's messages are written for a customer to read. A
+      // network failure or a Zod parse error would otherwise put "Failed to
+      // fetch", or an internals dump, in front of them.
       setError(
-        cause instanceof Error ? cause.message : 'Something went wrong.'
+        cause instanceof ApiError
+          ? cause.message
+          : 'We could not complete this redemption. Please try again.'
       );
     } finally {
       setSubmitting(false);

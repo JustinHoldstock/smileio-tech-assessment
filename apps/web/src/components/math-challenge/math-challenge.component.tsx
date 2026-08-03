@@ -22,6 +22,15 @@ type Feedback = {
   message: string;
 };
 
+/**
+ * Only `ApiError` messages are safe to show: those are written by our own API
+ * for a customer to read ("Hold on a moment — try again in 10s"). Anything else
+ * is a network failure or a Zod parse error, whose `message` is either
+ * meaningless to a customer ("Failed to fetch") or an internals dump.
+ */
+const readableError = (error: unknown, fallback: string): string =>
+  error instanceof ApiError ? error.message : fallback;
+
 export const MathChallengeCard = ({ onAwarded }: MathChallengeParams) => {
   const [challenge, setChallenge] = useState<MathChallenge | null>(null);
   const [answer, setAnswer] = useState('');
@@ -46,8 +55,7 @@ export const MathChallengeCard = ({ onAwarded }: MathChallengeParams) => {
 
       setFeedback({
         tone: rateLimited ? 'wrong' : 'failed',
-        message:
-          error instanceof Error ? error.message : 'Could not load a question.'
+        message: readableError(error, 'Could not load a question. Try refreshing.')
       });
       setChallenge(null);
     } finally {
@@ -115,8 +123,7 @@ export const MathChallengeCard = ({ onAwarded }: MathChallengeParams) => {
       } else {
         setFeedback({
           tone: 'failed',
-          message:
-            error instanceof Error ? error.message : 'Something went wrong.'
+          message: readableError(error, 'We could not check that answer.')
         });
       }
     } finally {
