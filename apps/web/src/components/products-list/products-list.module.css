@@ -27,10 +27,15 @@
  * beside a sidebar that wraps away on narrow screens, so the available width
  * changes independently of the viewport.
  */
+/*
+ * 12rem, not 14rem. Beside the sidebar at a tablet width the grid is only
+ * ~432px, and a 14rem minimum needs 464px for two tracks — so it collapsed to
+ * a single stretched card exactly where there was room for two.
+ */
 .grid {
   display: grid;
   gap: 1rem;
-  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
 }
 
 .state {
