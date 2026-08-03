@@ -1,7 +1,8 @@
 import { type SmileCustomerInfo, SmileCustomerInfoSchema, type SmilePointsProduct, SmilePointsProductSchema } from "@repo/shared";
 import { useRequest } from "./request";
 import { useCallback, useEffect, useState } from "react";
-import { PointsProduct } from "./components/points-product/points-product.component";
+import { ProductsList } from "./components/products-list/products-list.component";
+import { BalanceTracker } from "./components/balance-tracker/balance-tracker.component";
 import { MathChallengeCard } from "./components/math-challenge/math-challenge.component";
 import { RedemptionsSidebar } from "./components/redemptions-sidebar/redemptions-sidebar.component";
 
@@ -79,15 +80,20 @@ export function App() {
 
   return (
     <div style={pageStyle}>
+      <BalanceTracker
+        balance={customerInfo?.points_balance}
+        refreshing={customerInfoLoading}
+      />
       <main style={mainColumnStyle}>
-        <h1>Rewards</h1>
+        <h1>Smile Rewards</h1>
         <p>Hey {customerInfo?.first_name}!</p>
-        <p>Current balance: {customerInfo?.points_balance}</p>
         <MathChallengeCard onAwarded={refetchCustomerInfo} />
-        <div>
-          {rewardsLoading && 'Rewards loading...'}
-          {!rewardsLoading && rewards?.map((product) => <PointsProduct key={product.id} product={product} balance={customerInfo?.points_balance || 0} onRedeemed={handleRedeemed} />)}
-        </div>
+        <ProductsList
+          products={rewards}
+          balance={customerInfo?.points_balance ?? 0}
+          loading={rewardsLoading}
+          onRedeemed={handleRedeemed}
+        />
       </main>
       <RedemptionsSidebar key={redemptionVersion} />
     </div>

@@ -1,0 +1,46 @@
+/*
+ * Pinned rather than in flow: the balance is the number every action on this
+ * page changes, so it should stay readable while scrolling a long reward list.
+ */
+.tracker {
+  position: fixed;
+  top: 0.85rem;
+  right: 0.85rem;
+  z-index: 20;
+
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.5rem 0.9rem;
+
+  background: color-mix(in srgb, var(--surface-raised) 88%, transparent);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  box-shadow: var(--shadow);
+}
+
+.label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.value {
+  font-size: 1.05rem;
+  font-weight: 700;
+  /* Tabular figures stop the pill resizing as the number changes. */
+  font-variant-numeric: tabular-nums;
+}
+
+.unit {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+/* Refetching keeps the last known number visible rather than blanking it. */
+.stale {
+  opacity: 0.6;
+}

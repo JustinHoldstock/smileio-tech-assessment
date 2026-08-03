@@ -61,7 +61,9 @@ export const RedemptionsSidebar = () => {
         // below the main content instead of squeezing either column.
         flex: '0 1 18rem',
         minWidth: 0,
-        padding: '3rem 1.5rem',
+        // Extra top padding clears the fixed balance tracker, which sits in the
+        // same corner as this column's heading on a wide screen.
+        padding: '4.75rem 1.5rem 3rem',
         boxSizing: 'border-box'
       }}
     >
