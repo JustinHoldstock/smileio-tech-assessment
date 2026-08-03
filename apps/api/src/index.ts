@@ -42,14 +42,12 @@ app.use("*", (c, next) => {
 });
 
 app.get("/health", (c) => {
-  return c.json(
-    HealthResponseSchema.parse({
-      status: "ok",
-      data: {
-        timestamp: new Date().toISOString(),
-      }
+  return c.json({
+    status: "ok",
+    data: HealthResponseSchema.parse({
+      timestamp: new Date().toISOString(),
     }),
-  );
+  });
 });
 
 app.get('/customer', async (c) => {

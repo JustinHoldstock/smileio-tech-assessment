@@ -18,9 +18,14 @@ export const ApiErrorSchema = z.object({
 
 export type ApiError = z.infer<typeof ApiErrorSchema>;
 
-/** `GET /api/health` — liveness probe, used to verify wiring end to end. */
+/**
+ * `GET /api/health` — liveness probe payload.
+ *
+ * This describes the `data` payload only. `status` lives on the envelope every
+ * route shares, so repeating it here would have the schema describe a shape the
+ * route never actually sends.
+ */
 export const HealthResponseSchema = z.object({
-  status: z.literal("ok"),
   timestamp: z.string().datetime(),
 });
 
