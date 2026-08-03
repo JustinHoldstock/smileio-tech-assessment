@@ -30,7 +30,7 @@ export function App() {
     data: customerInfo,
     error: customerInfoError,
     loading: customerInfoLoading,
-    abortController: customerInfoAbortController,
+    // abortController: customerInfoAbortController,
     refetch: refetchCustomerInfo
   } = useRequest<SmileCustomerInfo>(`${API_BASE_URL}/api/customer`, SmileCustomerInfoSchema.parse);
 
@@ -38,7 +38,7 @@ export function App() {
     data: rewards,
     // error: rewardsError,
     loading: rewardsLoading,
-    abortController: rewardsAbortController
+    // abortController: rewardsAbortController
   } = useRequest<SmilePointsProduct[]>(`${API_BASE_URL}/api/rewards`, SmilePointsProductSchema.array().parse);
 
   const [redemptionVersion, setRedemptionVersion] = useState(0);
