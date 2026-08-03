@@ -3,22 +3,68 @@
   font-family:
     ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   line-height: 1.5;
+
+  /*
+   * Shared tokens rather than per-component colours: the reward cards need to
+   * sit on a surface that is distinguishable from the page, and that only works
+   * if "page" and "raised" are defined in one place.
+   */
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --surface-sunken: #f4f4f5;
+  --border: #e4e4e7;
+  --border-strong: #d4d4d8;
+  --text: #18181b;
+  --text-muted: #71717a;
+  --accent: #2563eb;
+  --accent-contrast: #ffffff;
+  --success: #15803d;
+
+  --radius: 12px;
+  --shadow: 0 1px 2px rgb(0 0 0 / 6%), 0 8px 20px rgb(0 0 0 / 4%);
+  --shadow-lifted: 0 2px 4px rgb(0 0 0 / 8%), 0 12px 28px rgb(0 0 0 / 10%);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --surface: #09090b;
+    --surface-raised: #141418;
+    --surface-sunken: #1c1c21;
+    --border: #27272e;
+    --border-strong: #3f3f48;
+    --text: #fafafa;
+    --text-muted: #a1a1aa;
+    --accent: #3b82f6;
+    --accent-contrast: #ffffff;
+    --success: #4ade80;
+
+    --shadow: 0 1px 2px rgb(0 0 0 / 40%), 0 8px 20px rgb(0 0 0 / 25%);
+    --shadow-lifted: 0 2px 4px rgb(0 0 0 / 50%), 0 12px 28px rgb(0 0 0 / 35%);
+  }
 }
 
 body {
   margin: 0;
+  background: var(--surface);
+  color: var(--text);
 }
 
 main {
-  max-width: 40rem;
+  max-width: 44rem;
   margin: 0 auto;
   padding: 3rem 1.5rem;
 }
 
 [data-status="ok"] {
-  color: green;
+  color: var(--success);
 }
 
 [data-status="error"] {
   color: crimson;
+}
+
+/* Never let a focus ring be invisible on a dark surface. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }

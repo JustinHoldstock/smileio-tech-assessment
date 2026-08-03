@@ -16,7 +16,8 @@
     "dev": "concurrently -n shared,api,web -c gray,magenta,cyan \"npm run dev -w @repo/shared\" \"npm run dev -w @repo/api\" \"npm run dev -w @repo/web\"",
     "build": "npm run build -w @repo/shared && npm run build -w @repo/api && npm run build -w @repo/web",
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "clean": "rm -rf node_modules apps/*/node_modules packages/*/node_modules apps/*/dist packages/*/dist"
+    "clean": "rm -rf node_modules apps/*/node_modules packages/*/node_modules apps/*/dist packages/*/dist",
+    "test": "npm run test --workspaces --if-present"
   },
   "devDependencies": {
     "concurrently": "^9.1.2",

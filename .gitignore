@@ -21,3 +21,6 @@ npm-debug.log*
 # Caches
 *.tsbuildinfo
 .cache/
+
+# Agent worktrees
+.claude/worktrees/

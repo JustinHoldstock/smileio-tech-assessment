@@ -3,7 +3,16 @@
   "compilerOptions": {
     "lib": ["ES2022"],
     "types": ["node"],
-    "noEmit": true
+    "noEmit": true,
+    /*
+     * Node's ESM loader, not a bundler, resolves these at runtime on Vercel —
+     * which means relative imports need explicit `.js` extensions. "Bundler"
+     * resolution accepts extensionless imports and tsx tolerates them locally,
+     * so a missing extension type-checks, runs fine in dev, and only fails once
+     * deployed. NodeNext makes tsc reject it instead.
+     */
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext"
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules"]

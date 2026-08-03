@@ -1,0 +1,50 @@
+.section {
+  margin-top: 2.25rem;
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.9rem;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.summary {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+ * `auto-fill` with a minimum rather than a fixed column count: the listing sits
+ * beside a sidebar that wraps away on narrow screens, so the available width
+ * changes independently of the viewport.
+ */
+/*
+ * 12rem, not 14rem. Beside the sidebar at a tablet width the grid is only
+ * ~432px, and a 14rem minimum needs 464px for two tracks — so it collapsed to
+ * a single stretched card exactly where there was room for two.
+ */
+.grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+}
+
+.state {
+  padding: 2rem 1rem;
+  text-align: center;
+  color: var(--text-muted);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+}
+
+/* Card-sized placeholders come from the shared <Skeleton>, so the grid keeps
+   its shape on load and every placeholder in the app shimmers in step. */
