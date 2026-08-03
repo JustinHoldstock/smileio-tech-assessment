@@ -43,3 +43,27 @@ export const SmileCustomerInfoSchema = z.object({
 });
 
 export type SmileCustomerInfo = z.infer<typeof SmileCustomerInfoSchema>;
+
+/** Shape returned by Smile.io /points_products/{id} */
+export const SmilePointsProductSchema = z.object({
+  id: z.number(),
+  exchange_type: z.enum(['fixed', 'variable']),
+  exchange_description: z.string(),
+  points_price: z.number().nullable(),
+  variable_points_step: z.number(),
+  variable_points_step_reward_value: z.number(),
+  variable_points_min: z.number().nullable(),
+  variable_points_max: z.number().nullable(),
+  reward: z.object({
+    id: z.number(),
+    name: z.string(),
+    description: z.string(),
+    image_url: z.string().url(),
+    created_at: z.string(),
+    updated_at: z.string()
+  }),
+  created_at: z.string(),
+  updated_at: z.string()
+});
+
+export type SmilePointsProduct = z.infer<typeof SmilePointsProductSchema>;

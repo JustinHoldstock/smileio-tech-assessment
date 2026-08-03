@@ -51,12 +51,12 @@ app.get('/customer', async (c) => {
   )
 })
 app.get('/rewards', async (c) => {
-  const customer = await Smile.getCustomer(process.env?.SMILE_CUSTOMER_ID || '');
+  const rewards = await Smile.getRewards();
 
   return c.json(
     {
       status: 'ok',
-      balance: customer.points_balance
+      data: rewards
     }
   )
 });
