@@ -1,5 +1,5 @@
 import { SmileCustomerInfoSchema, SmilePointsProductSchema } from "@repo/shared";
-import { SmilePointsProductsSchema } from "./schemas";
+import { SmilePointsProductsSchema, SmilePointsTransactionsSchema } from "./schemas";
 
 class SmileApp{
   static api_base = process.env.SMILE_API_BASE_URL
@@ -34,6 +34,46 @@ class SmileApp{
     // TODO: Fix this typing up later
     const data = await resp.json() as any;
     return SmilePointsProductsSchema.parse(data).points_products
+  }
+
+  /**
+   * Reads a customer's points history, newest first (Smile sorts descending by
+   * id by default).
+   *
+   * Returns the raw Smile records minus `internal_note`, which the schema
+   * strips — see `SmilePointsTransactionSchema`. Callers must still map to the
+   * client-facing shape before responding; nothing here is safe to spread
+   * straight into a response body.
+   */
+  async listPointsTransactions(clientId: string, limit: number) {
+    // Smile accepts 1–250 and defaults to 50; clamp rather than let it 4xx.
+    const safeLimit = Math.min(250, Math.max(1, Math.trunc(limit)));
+
+    const params = new URLSearchParams({
+      customer_id: clientId,
+      limit: String(safeLimit)
+    });
+    const url = `${SmileApp.api_base}/points_transactions?${params.toString()}`;
+
+    const resp = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${process.env.SMILE_API_KEY}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!resp.ok) {
+      // Log Smile's explanation server-side only; the client sees the generic
+      // error from the global handler.
+      const detail = await resp.text().catch(() => '');
+      throw new Error(
+        `Smile points transaction list failed with status ${resp.status}: ${detail || '(empty body)'}`
+      );
+    }
+
+    // TODO: Fix this typing up later
+    const data = await resp.json() as any;
+    return SmilePointsTransactionsSchema.parse(data).points_transactions;
   }
 
   /**

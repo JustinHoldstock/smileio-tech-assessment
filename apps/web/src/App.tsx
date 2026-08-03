@@ -3,8 +3,23 @@ import { useRequest } from "./request";
 import { useEffect } from "react";
 import { PointsProduct } from "./components/points-product/points-product.component";
 import { MathChallengeCard } from "./components/math-challenge/math-challenge.component";
+import { RedemptionsSidebar } from "./components/redemptions-sidebar/redemptions-sidebar.component";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
+
+/**
+ * Two columns on a wide screen, stacked on a narrow one. `flexWrap` does the
+ * whole job: once the two columns' bases no longer fit, the sidebar drops below
+ * the main content rather than either column overflowing the viewport.
+ */
+const pageStyle = { display: "flex", flexWrap: "wrap", alignItems: "flex-start", justifyContent: "center" } as const;
+
+/**
+ * `border-box` matters here: `main` carries generous padding from styles.css,
+ * and without it the flex-assigned width would be content-only and the padding
+ * would push the page into horizontal scroll on narrow screens.
+ */
+const mainColumnStyle = { flex: "1 1 22rem", minWidth: 0, boxSizing: "border-box" } as const;
 
 /**
  * Scaffold placeholder. Verifies that the frontend can reach the backend and
@@ -50,15 +65,18 @@ export function App() {
   }
 
   return (
-    <main>
-      <h1>Rewards</h1>
-      <p>Hey {customerInfo?.first_name}!</p>
-      <p>Current balance: {customerInfo?.points_balance}</p>
-      <MathChallengeCard onAwarded={refetchCustomerInfo} />
-      <div>
-        {rewardsLoading && 'Rewards loading...'}
-        {!rewardsLoading && rewards?.map((product) => <PointsProduct product={product} balance={customerInfo?.points_balance || 0} />)}
-      </div>
-    </main>
+    <div style={pageStyle}>
+      <main style={mainColumnStyle}>
+        <h1>Rewards</h1>
+        <p>Hey {customerInfo?.first_name}!</p>
+        <p>Current balance: {customerInfo?.points_balance}</p>
+        <MathChallengeCard onAwarded={refetchCustomerInfo} />
+        <div>
+          {rewardsLoading && 'Rewards loading...'}
+          {!rewardsLoading && rewards?.map((product) => <PointsProduct product={product} balance={customerInfo?.points_balance || 0} />)}
+        </div>
+      </main>
+      <RedemptionsSidebar />
+    </div>
   );
 }
