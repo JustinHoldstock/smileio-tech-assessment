@@ -57,7 +57,7 @@ export function App() {
       <MathChallengeCard onAwarded={refetchCustomerInfo} />
       <div>
         {rewardsLoading && 'Rewards loading...'}
-        {!rewardsLoading && rewards?.map((product) => <PointsProduct product={product} balance={customerInfo?.points_balance || 0} />)}
+        {!rewardsLoading && rewards?.map((product) => <PointsProduct key={product.id} product={product} balance={customerInfo?.points_balance || 0} onRedeemed={refetchCustomerInfo} />)}
       </div>
     </main>
   );

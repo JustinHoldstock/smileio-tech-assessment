@@ -5,6 +5,8 @@ import {
   ChallengeAnswerRequestSchema,
   ChallengeResultSchema,
   HealthResponseSchema,
+  RedeemRewardRequestSchema,
+  RedeemRewardResultSchema,
 } from "@repo/shared";
 import { Smile } from "./smile-proxy";
 import { getOrCreateSessionId } from "./session";
@@ -13,6 +15,7 @@ import {
   issueChallenge,
   POINTS_PER_CORRECT_ANSWER,
 } from "./challenge";
+import { planRedemption } from "./redemption";
 
 /**
  * Every route is mounted under `/api` so that the same paths work whether the
@@ -71,12 +74,107 @@ app.get('/rewards', async (c) => {
   )
 });
 
-app.get('/rewards/:id/redeem', (c) => {
-  return c.json(
-    {
-      status: 'ok',
-    }
-  )
+/**
+ * Spends points on a reward and returns the coupon Smile issued.
+ *
+ * The request body carries at most `pointsToSpend`. Everything the decision
+ * actually rests on — price, variable range, and the customer's balance — is
+ * re-read from Smile here, because anything the client sends is a UI hint that
+ * may be stale, or forged.
+ */
+app.post('/rewards/:id/redeem', async (c) => {
+  const productId = c.req.param('id');
+
+  if (!/^\d+$/.test(productId)) {
+    return c.json(
+      { error: { code: 'invalid_request', message: 'Unknown reward.' } },
+      400
+    );
+  }
+
+  // A fixed-price redemption has nothing to send, so an absent or empty body is
+  // legitimate; only a body that is present and malformed is an error.
+  const rawBody = await c.req.json().catch(() => undefined);
+  const parsedBody = RedeemRewardRequestSchema.safeParse(rawBody ?? {});
+
+  c.header('Cache-Control', 'no-store');
+
+  if (!parsedBody.success) {
+    return c.json(
+      {
+        error: {
+          code: 'invalid_request',
+          message: 'pointsToSpend must be a positive whole number.'
+        }
+      },
+      400
+    );
+  }
+
+  const customerId = process.env?.SMILE_CUSTOMER_ID || '';
+
+  const [customer, product] = await Promise.all([
+    Smile.getCustomer(customerId),
+    Smile.getPointsProduct(productId)
+  ]);
+
+  const check = planRedemption(
+    product,
+    customer.points_balance,
+    parsedBody.data.pointsToSpend
+  );
+
+  if (check.status === 'rejected') {
+    return c.json(
+      { error: { code: check.code, message: check.message } },
+      check.httpStatus
+    );
+  }
+
+  let purchase;
+
+  try {
+    purchase = await Smile.purchasePointsProduct(
+      customerId,
+      product.id,
+      check.plan.variableSpend
+    );
+  } catch (error) {
+    // Log the detail server-side; the client gets a message that does not leak
+    // Smile's response but also does not claim more than we know. A failed call
+    // is *probably* a no-op, but a request that died in flight might not be.
+    console.error(error);
+    return c.json(
+      {
+        error: {
+          code: 'redemption_failed',
+          message:
+            'We could not complete this redemption. Check your balance before trying again.'
+        }
+      },
+      502
+    );
+  }
+
+  // Re-read rather than subtracting locally: Smile is the source of truth, and
+  // it is the only thing that knows what the purchase actually cost.
+  const updatedCustomer = await Smile.getCustomer(customerId);
+  const fulfillment = purchase.reward_fulfillment;
+
+  return c.json({
+    status: 'ok',
+    data: RedeemRewardResultSchema.parse({
+      coupon: {
+        name: fulfillment.name,
+        code: fulfillment.code ?? null,
+        usageInstructions: fulfillment.usage_instructions ?? null,
+        termsAndConditions: fulfillment.terms_and_conditions ?? null,
+        expiresAt: fulfillment.expires_at ?? null
+      },
+      pointsSpent: purchase.points_spent,
+      newBalance: updatedCustomer.points_balance
+    })
+  });
 })
 
 /**
