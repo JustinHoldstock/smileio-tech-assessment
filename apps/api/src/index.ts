@@ -7,6 +7,7 @@ import {
   HealthResponseSchema,
   RedeemRewardRequestSchema,
   RedeemRewardResultSchema,
+  PointsTransactionSchema,
 } from "@repo/shared";
 import { Smile } from "./smile-proxy";
 import { getOrCreateSessionId } from "./session";
@@ -175,6 +176,58 @@ app.post('/rewards/:id/redeem', async (c) => {
       newBalance: updatedCustomer.points_balance
     })
   });
+})
+
+/**
+ * How much history to pull from Smile per request. The sidebar is a glanceable
+ * summary, not a full ledger, and filtering happens after the fetch — so this
+ * is deliberately larger than the number of rows we expect to render.
+ */
+const TRANSACTION_FETCH_LIMIT = 50;
+
+/**
+ * THE redemption rule. This is the single place the "what counts as a
+ * redemption" decision lives.
+ *
+ * Smile records spending points as a negative `points_change` and earning them
+ * as a positive one, so a redemption is simply a negative change. If the
+ * product decision later becomes "show all activity", change this one function
+ * to `() => true`; nothing else in the codebase encodes the distinction.
+ */
+const isRedemption = (transaction: { points_change: number }) =>
+  transaction.points_change < 0;
+
+app.get('/transactions', async (c) => {
+  const transactions = await Smile.listPointsTransactions(
+    process.env?.SMILE_CUSTOMER_ID || '',
+    TRANSACTION_FETCH_LIMIT
+  );
+
+  const redemptions = transactions
+    .filter(isRedemption)
+    .map((transaction) =>
+      // SECURITY: build the client payload field by field — never spread the
+      // Smile record. Smile's transactions carry a merchant-only
+      // `internal_note` that must not reach a customer, and listing the
+      // allowed fields explicitly means a new merchant-only field added by
+      // Smile tomorrow cannot silently start crossing the network either.
+      // `PointsTransactionSchema` (which has no `internal_note`) then
+      // validates the result, so the wire shape is enforced, not just
+      // intended.
+      PointsTransactionSchema.parse({
+        id: transaction.id,
+        points_change: transaction.points_change,
+        description: transaction.description,
+        created_at: transaction.created_at
+      })
+    );
+
+  return c.json(
+    {
+      status: 'ok',
+      data: redemptions
+    }
+  )
 })
 
 /**
