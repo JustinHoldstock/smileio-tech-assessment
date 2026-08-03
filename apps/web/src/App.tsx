@@ -26,7 +26,7 @@ export function App() {
 
   useEffect(() => {
     return () => {
-      // For now
+      // For now. We can clean this up later
       customerInfoAbortController?.abort();
       rewardsAbortController?.abort()
     }
@@ -52,8 +52,8 @@ export function App() {
       <p>Hey {customerInfo?.first_name}!</p>
       <p>Current balance: {customerInfo?.points_balance}</p>
       <div>
-        {rewardsLoading ? 'Rewards loading...' : null}
-        {!rewardsLoading ? rewards?.map((product) => <PointsProduct product={product} />) : null}
+        {rewardsLoading && 'Rewards loading...'}
+        {!rewardsLoading && rewards?.map((product) => <PointsProduct product={product} balance={customerInfo?.points_balance || 0} />)}
       </div>
     </main>
   );
