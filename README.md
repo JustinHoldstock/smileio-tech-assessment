@@ -108,9 +108,14 @@ local `src/dev.ts` server is not used in production. Set each project's
 environment variables in the Vercel dashboard — the backend needs the secrets,
 the frontend needs none.
 
-To keep the browser same-origin in production, add a rewrite to the frontend
-project sending `/api/(.*)` to the backend deployment. Otherwise set
-`VITE_API_BASE_URL` and `WEB_ORIGIN` and let CORS handle it.
+`apps/web/vercel.json` rewrites `/api/*` to the backend deployment so the
+browser stays same-origin in production — no CORS, no preflight, and
+`VITE_API_BASE_URL` stays unset. Update that destination if the backend's
+domain changes.
+
+Note that frontend preview deployments rewrite to the *production* backend,
+since the destination is a fixed URL. That is an accepted trade-off for this
+project; Vercel's Related Projects is the production-grade answer.
 
 ## Branching
 
