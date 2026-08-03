@@ -24,7 +24,6 @@ import { planRedemption } from "./redemption";
  * frontend's dev proxy / production rewrite.
  */
 const app = new Hono().basePath("/api");
-const smileApp = Smile;
 
 app.use("*", logger());
 
