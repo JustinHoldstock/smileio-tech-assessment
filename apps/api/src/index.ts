@@ -9,14 +9,14 @@ import {
   RedeemRewardResultSchema,
   PointsTransactionSchema,
 } from "@repo/shared";
-import { Smile } from "./smile-proxy";
-import { getOrCreateSessionId } from "./session";
+import { Smile } from "./smile-proxy.js";
+import { getOrCreateSessionId } from "./session.js";
 import {
   gradeAnswer,
   issueChallenge,
   POINTS_PER_CORRECT_ANSWER,
-} from "./challenge";
-import { planRedemption } from "./redemption";
+} from "./challenge.js";
+import { planRedemption } from "./redemption.js";
 
 /**
  * Every route is mounted under `/api` so that the same paths work whether the

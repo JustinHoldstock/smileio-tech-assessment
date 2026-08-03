@@ -1,5 +1,5 @@
 import { Redis } from "@upstash/redis";
-import { requireRedisConfig } from "./env";
+import { requireRedisConfig } from "./env.js";
 
 let client: Redis | null = null;
 

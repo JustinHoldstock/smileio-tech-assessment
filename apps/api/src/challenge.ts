@@ -18,7 +18,7 @@
 import { randomInt, randomUUID } from "node:crypto";
 import { z } from "zod";
 import type { MathChallenge } from "@repo/shared";
-import { redis } from "./redis";
+import { redis } from "./redis.js";
 
 const CHALLENGE_TTL_SECONDS = 300;
 const WRONG_ANSWER_COOLDOWN_SECONDS = 10;

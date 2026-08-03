@@ -4,7 +4,7 @@ import {
   SmilePointsProductsSchema,
   SmilePointsPurchaseResponseSchema,
   SmilePointsTransactionsSchema
-} from "./schemas";
+} from "./schemas.js";
 
 class SmileApp{
   static api_base = process.env.SMILE_API_BASE_URL
